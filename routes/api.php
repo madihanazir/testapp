@@ -5,7 +5,8 @@ use App\Http\Controllers\Api\UserController;
 
 Route::middleware(['web','auth'])->group(function () {
 
-    Route::get('/users', [UserController::class, 'index']);
+    Route::middleware('auth')->get('/users', [UserController::class, 'index']);
+
 
     Route::middleware('can:admin')->group(function () {
         Route::post('/users', [UserController::class, 'store']);
