@@ -7,95 +7,113 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
-          <th v-if="isAdmin">Action</th>
+          
         </tr>
       </thead>
 
       <tbody>
-        <tr v-for="user in users" :key="user.id">
-          <td>
-            <input v-model="user.name" :disabled="!isAdmin">
-          </td>
 
+        <!-- Existing users -->
+        <tr v-for="user in users" :key="'u'+user.id">
           <td>
-            <input v-model="user.email" :disabled="!isAdmin">
-          </td>
+                      <input v-model="user.name" :disabled="!isAdmin"
+            @blur="updateUser(user)"
+          >
 
-          <td v-if="isAdmin" align="center">
-            <button @click="updateUser(user)">Save</button>
+          </td>
+          <td>
+                  <input v-model="user.email" :disabled="!isAdmin"
+            @blur="updateUser(user)"
+          >
+
+          </td>
+          
+        </tr>
+
+        <!-- Newly added users (not yet saved) -->
+        <tr v-for="(user,index) in newUsers" :key="'n'+index">
+          <td>
+            <input v-model="user.name" placeholder="Name">
+          </td>
+          <td>
+            <input v-model="user.email" placeholder="Email">
+          </td>
+          <td>
+            <button @click="removeNew(index)">X</button>
           </td>
         </tr>
+
       </tbody>
     </table>
 
-    <tfoot v-if="isAdmin">
-  <tr>
-    <td>
-      <input v-model="form.name" placeholder="Enter name">
-    </td>
-    <td>
-      <input v-model="form.email" placeholder="Enter email">
-    </td>
-    <td align="center">
-      <button @click="addUser">Save</button>
-    </td>
-  </tr>
-</tfoot>
-
-
-    <div v-if="isAdmin" style="text-align:right;margin-top:15px">
-      <button @click="showForm = !showForm">+ Add New User</button>
-    </div>
-
-    <div v-if="showForm" style="margin-top:15px">
-      <input v-model="form.name" placeholder="Name">
-      <input v-model="form.email" placeholder="Email">
-      <input v-model="form.password" placeholder="Password" type="password">
-      <button @click="addUser">Save</button>
+    <!-- Controls -->
+    <div v-if="isAdmin" style="margin-top:15px;display:flex;gap:10px;justify-content:flex-end">
+      <button @click="addRow">+ Add New User</button>
+      <button @click="saveAll" :disabled="!newUsers.length">Save All</button>
     </div>
 
   </div>
 </template>
 
 <script>
-import axios from 'axios';
+import axios from 'axios'
 
 export default {
   data() {
     return {
       users: [],
+      newUsers: [],
       isAdmin: false,
-      showForm: false,
-      form: {
-        name: '',
-        email: '',
-        password: ''
-      }
+      savedRows: {} // Track which rows have been recently saved
     }
   },
 
   mounted() {
-    this.loadUsers();
+    this.loadUsers()
   },
 
   methods: {
+
     async loadUsers() {
-      const res = await axios.get('/api/users');
-      this.users = res.data.users;
-      this.isAdmin = res.data.is_admin;
+      const res = await axios.get('/api/users')
+      this.users = res.data.users
+      this.isAdmin = res.data.is_admin
     },
 
-    async addUser() {
-      await axios.post('/api/users', this.form);
-      this.form = { name:'', email:'', password:'' };
-      this.showForm = false;
-      this.loadUsers();
+    addRow() {
+      this.newUsers.push({
+        name: '',
+        email: '',
+        password: '123456'
+      })
+    },
+
+    removeNew(index) {
+      this.newUsers.splice(index,1)
+    },
+
+    async saveAll() {
+      if (!this.newUsers.length) return
+
+      await axios.post('/api/users/bulk', {
+        users: this.newUsers
+      })
+
+      this.newUsers = []
+      this.loadUsers()
+      alert('Users saved successfully')
     },
 
     async updateUser(user) {
-      await axios.put(`/api/users/${user.id}`, user);
-      alert('Updated');
-    }
+    await axios.put(`/api/users/${user.id}`, user)
+
+    this.savedRows[user.id] = true
+
+    setTimeout(() => {
+      this.savedRows[user.id] = false
+    }, 1500)
+}
+
   }
 }
 </script>

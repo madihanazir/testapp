@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     Route::get('/users', [UserController::class, 'index']);
 
@@ -11,5 +11,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{id}', [UserController::class, 'update']);
     });
+
+    Route::post('/users/bulk', [UserController::class,'bulkStore']);
+
 
 });

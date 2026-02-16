@@ -39,4 +39,25 @@ class UserController extends Controller
     ]);
 }
 
+public function bulkStore(Request $request)
+{
+    foreach ($request->users as $user) {
+        User::create([
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'password' => bcrypt($user['password'] ?? '123456')
+        ]);
+    }
+
+    return response()->json(['status'=>'ok']);
+}
+    public function update(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+    $user->update($request->only('name','email'));
+
+    return response()->json(['status'=>'updated']);
+}
+
+
 }
