@@ -16,7 +16,7 @@ class UserController extends Controller
             'users' => User::select('id','name','email')->get(),
             'is_admin' => Auth::check() ? Auth::user()->is_admin : 0
         ]);
-    }
+    } 
 
     public function store(Request $request)
 {

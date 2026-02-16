@@ -28,6 +28,21 @@
       </tbody>
     </table>
 
+    <tfoot v-if="isAdmin">
+  <tr>
+    <td>
+      <input v-model="form.name" placeholder="Enter name">
+    </td>
+    <td>
+      <input v-model="form.email" placeholder="Enter email">
+    </td>
+    <td align="center">
+      <button @click="addUser">Save</button>
+    </td>
+  </tr>
+</tfoot>
+
+
     <div v-if="isAdmin" style="text-align:right;margin-top:15px">
       <button @click="showForm = !showForm">+ Add New User</button>
     </div>
