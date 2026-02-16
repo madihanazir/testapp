@@ -12,51 +12,31 @@ class UserController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-
         return response()->json([
             'users' => User::select('id','name','email')->get(),
-            'is_admin' => $user ? $user->is_admin : false
+            'is_admin' => Auth::check() ? Auth::user()->is_admin : 0
         ]);
     }
-
-
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6'
-        ]);
+{
+    $request->validate([
+        'name' => 'required',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|min:6'
+    ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'is_admin' => 0
-        ]);
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'is_admin' => 0
+    ]);
 
-        return response()->json($user, 201);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,'.$id,
-        ]);
-
-        $user = User::findOrFail($id);
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email
-        ]);
-
-        return response()->json(['success' => true]);
-    }
+    return response()->json([
+        'success' => true,
+        'user' => $user
+    ]);
 }
 
-    
-
-
+}
