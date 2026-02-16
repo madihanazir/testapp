@@ -7,41 +7,38 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
-          <th width="140">Action</th>
+          <th v-if="isAdmin">Action</th>
         </tr>
       </thead>
 
       <tbody>
-        <tr v-for="(user, index) in users" :key="user.id">
+        <tr v-for="user in users" :key="user.id">
           <td>
-            <input v-model="user.name" />
+            <input v-model="user.name" :disabled="!isAdmin">
           </td>
 
           <td>
-            <input v-model="user.email" />
+            <input v-model="user.email" :disabled="!isAdmin">
           </td>
 
-          <td align="center">
+          <td v-if="isAdmin" align="center">
             <button @click="updateUser(user)">Save</button>
-          </td>
-        </tr>
-
-        <!-- ADD NEW USER ROW -->
-        <tr>
-          <td>
-            <input v-model="form.name" placeholder="New name">
-          </td>
-          <td>
-            <input v-model="form.email" placeholder="New email">
-          </td>
-          <td align="center">
-            <input v-model="form.password" placeholder="Password" type="password" style="width:95px">
-            <br><br>
-            <button @click="addUser">+ Add</button>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <div v-if="isAdmin" style="text-align:right;margin-top:15px">
+      <button @click="showForm = !showForm">+ Add New User</button>
+    </div>
+
+    <div v-if="showForm" style="margin-top:15px">
+      <input v-model="form.name" placeholder="Name">
+      <input v-model="form.email" placeholder="Email">
+      <input v-model="form.password" placeholder="Password" type="password">
+      <button @click="addUser">Save</button>
+    </div>
+
   </div>
 </template>
 
@@ -52,6 +49,8 @@ export default {
   data() {
     return {
       users: [],
+      isAdmin: false,
+      showForm: false,
       form: {
         name: '',
         email: '',
@@ -67,12 +66,14 @@ export default {
   methods: {
     async loadUsers() {
       const res = await axios.get('/api/users');
-      this.users = res.data;
+      this.users = res.data.users;
+      this.isAdmin = res.data.is_admin;
     },
 
     async addUser() {
       await axios.post('/api/users', this.form);
       this.form = { name:'', email:'', password:'' };
+      this.showForm = false;
       this.loadUsers();
     },
 
