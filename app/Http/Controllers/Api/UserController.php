@@ -7,10 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
-    public function index()
+    public function get_users()
     {
         return response()->json([
             'users' => User::select('id','name','email')->get(),
@@ -39,25 +41,57 @@ class UserController extends Controller
     ]);
 }
 
+
+
 public function bulkStore(Request $request)
 {
-    foreach ($request->users as $user) {
-        User::create([
-            'name' => $user['name'],
-            'email' => $user['email'],
-            'password' => bcrypt($user['password'] ?? '123456')
-        ]);
-    }
+    DB::transaction(function () use ($request) {
 
-    return response()->json(['status'=>'ok']);
-}
-    public function update(Request $request, $id)
-{
-    $user = User::findOrFail($id);
-    $user->update($request->only('name','email'));
+        foreach ($request->users as $user) {
 
-    return response()->json(['status'=>'updated']);
+            // Skip empty rows
+            if (empty($user['name']) || empty($user['email'])) {
+                continue;
+            }
+
+            // Validate duplicate email for new users
+            if (empty($user['id'])) {
+                if (User::where('email', $user['email'])->exists()) {
+                    throw ValidationException::withMessages([
+                        'email' => "Email {$user['email']} already exists."
+                    ]);
+                }
+            }
+
+            $userModel = null;
+
+            if (!empty($user['id'])) {
+                $userModel = User::find($user['id']);
+            }
+
+            if ($userModel) {
+                // UPDATE
+                $userModel->update([
+                    'name' => $user['name'],
+                    'email' => $user['email']
+                ]);
+            } else {
+                // CREATE
+                User::create([
+                    'name' => $user['name'],
+                    'email' => $user['email'],
+                    'password' => bcrypt($user['password'] ?? '123456')
+                ]);
+            }
+
+        }
+
+    });
+
+    return response()->json(['message' => 'Users saved successfully']);
 }
+
+   
 
 
 }

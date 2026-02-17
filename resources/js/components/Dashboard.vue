@@ -7,49 +7,38 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
-          
+          <th v-if="isAdmin">Password (for new users)</th>
         </tr>
       </thead>
 
       <tbody>
 
-        <!-- Existing users -->
+        
         <tr v-for="user in users" :key="'u'+user.id">
           <td>
-                      <input v-model="user.name" :disabled="!isAdmin"
-            @blur="updateUser(user)"
-          >
-
+              <input type="hidden" :value="user.id">
+              <input v-model="user.name" :disabled="!isAdmin" @input=" markDirty(user)">
           </td>
           <td>
-                  <input v-model="user.email" :disabled="!isAdmin"
-            @blur="updateUser(user)"
-          >
-
-          </td>
-          
-        </tr>
-
-        <!-- Newly added users (not yet saved) -->
-        <tr v-for="(user,index) in newUsers" :key="'n'+index">
-          <td>
-            <input v-model="user.name" placeholder="Name">
+              <input v-model="user.email" :disabled="!isAdmin" @input="markDirty(user)">
           </td>
           <td>
-            <input v-model="user.email" placeholder="Email">
-          </td>
-          <td>
-            <button @click="removeNew(index)">X</button>
+            <div v-if="!user.id">
+              <input 
+                v-model="user.password" 
+                type="password" 
+                placeholder="Password"
+              >
+            </div>
           </td>
         </tr>
-
       </tbody>
     </table>
 
     <!-- Controls -->
     <div v-if="isAdmin" style="margin-top:15px;display:flex;gap:10px;justify-content:flex-end">
       <button @click="addRow">+ Add New User</button>
-      <button @click="saveAll" :disabled="!newUsers.length">Save All</button>
+      <button @click="saveAll" :disabled="!hasDirtyRows">Save All</button>
     </div>
 
   </div>
@@ -62,9 +51,16 @@ export default {
   data() {
     return {
       users: [],
-      newUsers: [],
       isAdmin: false,
-      savedRows: {} // Track which rows have been recently saved
+      savedRows: {},// Track which rows have been recently saved
+      password: ''
+    }
+  },
+
+
+  computed: {
+    hasDirtyRows() {
+      return this.users.some(u => u.isDirty)
     }
   },
 
@@ -77,42 +73,48 @@ export default {
     async loadUsers() {
       const res = await axios.get('/api/users')
       this.users = res.data.users
+      this.users = res.data.users.map(user => ({
+        ...user,
+        password: '',
+        isDirty: false
+      }))
+
       this.isAdmin = res.data.is_admin
+
     },
 
     addRow() {
-      this.newUsers.push({
+      this.users.push({
         name: '',
         email: '',
-        password: '123456'
+        password: '',
+        isDirty: true
       })
     },
 
-    removeNew(index) {
-      this.newUsers.splice(index,1)
+    markDirty(user) {
+      user.isDirty = true
     },
+
+    // removeNew(index) {
+    //   this.users.splice(index,1)
+    // },
 
     async saveAll() {
-      if (!this.newUsers.length) return
+      const dirtyUsers = this.users.filter(u => u.isDirty)
+
+      if (!dirtyUsers.length) {
+        alert('No changes to save')
+        return
+      }
 
       await axios.post('/api/users/bulk', {
-        users: this.newUsers
+        users: dirtyUsers
       })
 
-      this.newUsers = []
       this.loadUsers()
       alert('Users saved successfully')
-    },
-
-    async updateUser(user) {
-    await axios.put(`/api/users/${user.id}`, user)
-
-    this.savedRows[user.id] = true
-
-    setTimeout(() => {
-      this.savedRows[user.id] = false
-    }, 1500)
-}
+    }
 
   }
 }
